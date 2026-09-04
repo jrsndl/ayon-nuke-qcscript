@@ -138,6 +138,79 @@ nukeio.clear_selection()
 none_selected, error = containers.container_from_selection()
 check("empty selection reports an error", none_selected is None and bool(error))
 
+# --- a container built through a templated loader ---------------------------
+# The loader path deletes the placeholder, so the node list the backdrop is
+# sized from must not keep a reference to it. AYON is stubbed out here; only
+# the node bookkeeping is under test.
+clear_script()
+
+row = templates.TemplatedLoader(
+    loader_id="001", product_base_type="render", representation="exr",
+    loader="Stub Loader",
+)
+loader_template = templates.Template(node_text=node_text, loaders=[row])
+
+real_resolve = containers.templates.resolve
+real_load = containers.ayonio.load_representation
+
+
+def fake_resolve(project_name, folder_id, loader_row, task_names_by_id=None):
+    return templates.Resolved(
+        loader_row,
+        product={"id": "p1", "name": "renderMain"},
+        version={"id": "v1", "version": 3},
+        representation={"id": "r1", "name": "exr"},
+    )
+
+
+def fake_load(representation, loader_label, options=None, name=None):
+    read = nuke.nodes.Read()
+    read.setXYpos(4000, 4000)
+    return read
+
+
+containers.templates.resolve = fake_resolve
+containers.ayonio.load_representation = fake_load
+try:
+    result = containers.create_container("PRJ", folder, task, loader_template)
+finally:
+    containers.templates.resolve = real_resolve
+    containers.ayonio.load_representation = real_load
+
+check("container with a templated loader created",
+      result.created and result.ok, result.messages)
+check("no messages from a clean templated build", not result.messages,
+      result.messages)
+
+backdrops = [n for n in nuke.allNodes() if n.Class() == "BackdropNode"]
+check("the backdrop exists", len(backdrops) == 1, len(backdrops))
+
+if backdrops and result.container is not None:
+    backdrop = backdrops[0]
+    inside = nukeio.nodes_in_backdrop(backdrop)
+    reads = [n for n in nuke.allNodes() if n.Class() == "Read"]
+    check("the loaded node is inside the backdrop",
+          bool(reads) and reads[0] in inside,
+          [n.name() for n in inside])
+    check("the backdrop covers the merge as well",
+          any(n.Class() == "Merge2" for n in inside),
+          [n.Class() for n in inside])
+    check("the loaded node is stamped with the container key",
+          nukeio.get_string_knob(reads[0], "qcs_key") == result.container.key)
+    check("the loaded node knows its loader id",
+          nukeio.get_string_knob(reads[0], "qcs_loader_id") == "001")
+    check("the placeholder is gone",
+          all(n.Class() != "Dot" for n in nuke.allNodes()))
+
+# a stale reference to a deleted node must not break sizing
+ghost = nuke.nodes.Dot()
+survivor = nuke.nodes.Dot()
+nuke.delete(ghost)
+check("node_bbox ignores deleted nodes",
+      nukeio.node_bbox([ghost, survivor]) is not None)
+check("alive() drops deleted nodes",
+      nukeio.alive([ghost, survivor]) == [survivor])
+
 print("")
 if failures:
     print("FAILURES: {}".format(failures))

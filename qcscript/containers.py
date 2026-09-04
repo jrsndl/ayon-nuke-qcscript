@@ -271,7 +271,9 @@ def create_container(
     if template_nodes:
         nukeio.move_nodes_to(template_nodes, x, y)
 
-    all_container_nodes = list(template_nodes)
+    # Collected after the loader loop: replacing a placeholder deletes it, and
+    # a deleted node must never end up in the list the backdrop is sized from.
+    loaded_nodes = []
 
     # 2. templated loaders
     for row in template.loaders:
@@ -343,8 +345,9 @@ def create_container(
                 )
             )
 
-        all_container_nodes.extend(loaded)
+        loaded_nodes.extend(loaded)
 
+    all_container_nodes = nukeio.alive(template_nodes + loaded_nodes)
     if not all_container_nodes:
         return CreateResult(
             None, False,

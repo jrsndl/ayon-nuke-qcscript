@@ -148,9 +148,29 @@ class CapturedNodes(object):
 # geometry
 # ---------------------------------------------------------------------------
 
+def is_alive(node):
+    """Whether a node reference still points at a node in the graph.
+
+    Replacing a placeholder deletes it, so lists collected earlier can hold
+    references to nodes that are gone; touching one of those raises.
+    """
+    if node is None:
+        return False
+    try:
+        node.xpos()
+    except Exception:
+        return False
+    return True
+
+
+def alive(nodes):
+    """Drop deleted nodes from a list of node references."""
+    return [node for node in nodes if is_alive(node)]
+
+
 def node_bbox(nodes):
     """(x, y, width, height) covering the given nodes, or None."""
-    nodes = [n for n in nodes if n is not None]
+    nodes = alive(nodes)
     if not nodes:
         return None
     xs, ys, x2s, y2s = [], [], [], []
@@ -165,7 +185,7 @@ def node_bbox(nodes):
 
 
 def move_nodes(nodes, dx, dy):
-    for node in nodes:
+    for node in alive(nodes):
         node.setXYpos(int(node.xpos() + dx), int(node.ypos() + dy))
 
 

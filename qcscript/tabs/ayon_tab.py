@@ -373,9 +373,20 @@ class AyonTab(TabController):
         created = 0
         with busy():
             for folder, task in pairs:
-                result = containers.create_container(
-                    project, folder, task, template, task_names
-                )
+                # One bad shot must not abandon the rest of the batch.
+                try:
+                    result = containers.create_container(
+                        project, folder, task, template, task_names
+                    )
+                except Exception as exc:
+                    log.exception("Could not build a container")
+                    messages.append("{}: {}".format(
+                        containers.container_label(
+                            folder.get("path") or "", task.get("name") or ""
+                        ),
+                        exc,
+                    ))
+                    continue
                 messages.extend(result.messages)
                 if result.created:
                     created += 1
