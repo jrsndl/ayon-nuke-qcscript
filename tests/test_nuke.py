@@ -157,7 +157,8 @@ real_resolve = containers.templates.resolve
 real_load = containers.ayonio.load_representation
 
 
-def fake_resolve(project_name, folder_id, loader_row, task_names_by_id=None):
+def fake_resolve(project_name, folder_id, loader_row, task_names_by_id=None,
+                 cache=None):
     return templates.Resolved(
         loader_row,
         product={"id": "p1", "name": "renderMain"},

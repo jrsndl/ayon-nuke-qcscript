@@ -142,6 +142,31 @@ class TemplatedLoader(object):
         return options
 
 
+def move_selected(rows, selected, step):
+    """Move the selected indices one place up (step -1) or down (step 1).
+
+    A block of selected rows slides as one and stops together at the end of
+    the list. Returns (reordered rows, new selection).
+    """
+    rows = list(rows)
+    selected = sorted({index for index in selected if 0 <= index < len(rows)})
+    if not selected or step not in (-1, 1):
+        return rows, selected
+
+    moved = set(selected)
+    # Start from the edge the rows are moving towards, so each row finds its
+    # target free.
+    order = selected if step < 0 else list(reversed(selected))
+    for index in order:
+        target = index + step
+        if target < 0 or target >= len(rows) or target in moved:
+            continue
+        rows[index], rows[target] = rows[target], rows[index]
+        moved.discard(index)
+        moved.add(target)
+    return rows, sorted(moved)
+
+
 def _coerce(value):
     lowered = value.lower()
     if lowered in ("true", "yes"):
@@ -182,6 +207,17 @@ class Template(object):
             ],
         )
 
+    def renumber(self):
+        """Ids follow position: row 1 is 001, row 2 is 002, and so on.
+
+        The id is a slot, not an identity - a placeholder Dot labelled 001
+        always means "whatever the first row loads", which is what makes
+        reordering rows meaningful.
+        """
+        for index, loader in enumerate(self.loaders):
+            loader.loader_id = "{:03d}".format(index + 1)
+        return self
+
     def next_loader_id(self):
         """Smallest unused zero filled id, counting from 1."""
         used = set()
@@ -216,16 +252,31 @@ class Resolved(object):
         return self.representation is not None and not self.error
 
 
-def resolve(project_name, folder_id, loader_row, task_names_by_id=None):
+def _cached(cache, key, factory):
+    """Memoise an AYON query for the duration of one Add Container press."""
+    if cache is None:
+        return factory()
+    if key not in cache:
+        cache[key] = factory()
+    return cache[key]
+
+
+def resolve(project_name, folder_id, loader_row, task_names_by_id=None,
+            cache=None):
     """Resolve one templated loader row for one folder.
 
-    ``task_names_by_id`` lets the caller pass a cache so a whole container does
-    not re-query tasks for every row.
+    ``task_names_by_id`` maps task id -> task name, which is what ``Task
+    Regex`` is matched against; it is looked up per folder when not supplied.
+    ``cache`` is a plain dict shared across rows and folders so adding a whole
+    sequence queries each folder once instead of once per row.
     """
     if not ayonio.is_available():
         return Resolved(loader_row, error="AYON is not available")
 
-    products = ayonio.get_products(project_name, [folder_id])
+    products = _cached(
+        cache, ("products", folder_id),
+        lambda: ayonio.get_products(project_name, [folder_id]),
+    )
     candidates = []
     for product in products:
         if loader_row.product_base_type and (
@@ -251,15 +302,36 @@ def resolve(project_name, folder_id, loader_row, task_names_by_id=None):
         )
 
     products_by_id = {product["id"]: product for product in candidates}
-    versions = ayonio.get_versions(project_name, products_by_id.keys())
+
+    # One query per folder, then filtered down to the matching products.
+    folder_versions = _cached(
+        cache, ("versions", folder_id),
+        lambda: ayonio.get_versions(
+            project_name, [product["id"] for product in products]
+        ),
+    )
+    versions = [
+        version for version in folder_versions
+        if version.get("productId") in products_by_id
+    ]
+
     if loader_row.task_regex:
-        if task_names_by_id is None:
-            task_names_by_id = {}
+        # Task Regex is matched against the task name the version was
+        # published from.
+        names_by_id = task_names_by_id
+        if names_by_id is None:
+            names_by_id = _cached(
+                cache, ("tasks", folder_id),
+                lambda: {
+                    task["id"]: task.get("name") or ""
+                    for task in ayonio.get_tasks(project_name, [folder_id])
+                },
+            )
         versions = [
             version for version in versions
             if ayonio.regex_matches(
                 loader_row.task_regex,
-                task_names_by_id.get(version.get("taskId"), ""),
+                names_by_id.get(version.get("taskId"), ""),
             )
         ]
     if not versions:
@@ -290,7 +362,10 @@ def resolve(project_name, folder_id, loader_row, task_names_by_id=None):
             ),
         )
 
-    representations = ayonio.get_representations(project_name, [version["id"]])
+    representations = _cached(
+        cache, ("repres", version["id"]),
+        lambda: ayonio.get_representations(project_name, [version["id"]]),
+    )
     representation = None
     for repre in representations:
         if repre.get("name") == loader_row.representation:
@@ -309,6 +384,21 @@ def resolve(project_name, folder_id, loader_row, task_names_by_id=None):
         )
 
     return Resolved(loader_row, product, version, representation)
+
+
+def any_row_resolves(project_name, folder_id, template, task_names_by_id=None,
+                     cache=None):
+    """Whether at least one templated loader finds something for this folder.
+
+    Used when Add Container expands a folder into everything below it - a shot
+    the template has nothing to say about should not get an empty container.
+    """
+    for row in template.loaders:
+        if resolve(
+            project_name, folder_id, row, task_names_by_id, cache
+        ).ok:
+            return True
+    return False
 
 
 def pick_version(versions, hint):

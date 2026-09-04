@@ -242,6 +242,7 @@ def create_container(
     task_entity,
     template,
     task_names_by_id=None,
+    cache=None,
 ):
     """Build one container from the template - the Add Container sequence."""
     folder_path = folder_entity.get("path") or folder_entity.get("name") or ""
@@ -273,7 +274,7 @@ def create_container(
     # 2. templated loaders
     for row in template.loaders:
         resolved = templates.resolve(
-            project_name, folder_entity["id"], row, task_names_by_id
+            project_name, folder_entity["id"], row, task_names_by_id, cache
         )
         if not resolved.ok:
             messages.append(

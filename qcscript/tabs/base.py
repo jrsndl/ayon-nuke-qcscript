@@ -129,6 +129,18 @@ def set_combo_items(combo, items, keep_current=True):
     combo.blockSignals(False)
 
 
+def set_combo_text(combo, text):
+    """Select an entry by text, adding it when the combo does not have it."""
+    if combo is None:
+        return
+    index = combo.findText(text or "")
+    if index < 0 and text:
+        combo.addItem(text)
+        index = combo.findText(text)
+    if index >= 0:
+        combo.setCurrentIndex(index)
+
+
 def split_words(text):
     """Split a space separated filter field into a list of words."""
     return [word for word in (text or "").replace(",", " ").split() if word]

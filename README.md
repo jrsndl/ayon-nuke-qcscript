@@ -45,10 +45,10 @@ digit, so put the loader id in the node's **label** (`001`); a name such as
 
 | Tab | What it does |
 | --- | --- |
-| AYON | Browse folders and tasks, filter them, add one container per selected folder+task, or load a hand picked representation. |
+| AYON | Browse folders and tasks, filter them, add one container per selected folder+task, or load a hand picked representation. Selecting a folder instead of a task adds every shot and task below it, skipping the ones no template row matches. |
 | Inventory | Read the containers out of the open script, fetch their versions from AYON, filter, and mass change versions. Changed containers are tinted with the colour chosen next to *Change Color*. Adding containers repopulates this tab automatically - both fetches and unfold - so it never lags behind. |
 | Container | Properties of the single container selected in the node graph: frame range, format, version history, links to AYON and Ftrack. *Set Range* and *Set Format* apply to the Nuke script root; with *Auto* on, the numbers come from the container's task attributes, falling back to its folder. |
-| Template | Edit the container recipe. Autosaves. |
+| Template | Edit the container recipe. Double click a row to load it back into the fields above; *Up* / *Down* reorder the selection. Autosaves. |
 | Preferences | Default loader per product base type, used by *Load* and by templated loaders that name no loader. |
 
 ### Version hints
@@ -64,6 +64,27 @@ A templated loader picks its version with a *Version Hint*:
 | `-2` | two steps back from the newest |
 
 *Version Lock* keeps an item out of every mass version change.
+
+### Row ids are slots
+
+A row's id is its position: row 1 is `001`, row 2 is `002`. Reordering rows with
+*Up* / *Down* renumbers them, so a placeholder Dot labelled `001` always means
+"whatever the first row loads" - moving a row changes which product ends up in
+which placeholder, and the Dots in the template nodes never need relabelling.
+
+### Matching
+
+Each templated loader narrows the folder's products down to one:
+
+| Field | Matched against |
+| --- | --- |
+| Base Type | the product's base type (or product type on older servers) |
+| Product Regex | the product name |
+| Variant Regex | the product name with its type prefix removed |
+| Task Regex | the name of the task the version was published from |
+
+An empty regex matches everything. When several products still match, the one
+published most recently wins.
 
 ### Loader args
 

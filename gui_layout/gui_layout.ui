@@ -3700,6 +3700,50 @@ QCalendarWidget
                </property>
               </widget>
              </item>
+             <item>
+              <widget class="QPushButton" name="template_move_up">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>60</width>
+                 <height>23</height>
+                </size>
+               </property>
+               <property name="toolTip">
+                <string>Move the selected templated loader row(s) up. Row ids are renumbered so they always run 001, 002, 003 top to bottom.</string>
+               </property>
+               <property name="text">
+                <string>Up</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="template_move_down">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>60</width>
+                 <height>23</height>
+                </size>
+               </property>
+               <property name="toolTip">
+                <string>Move the selected templated loader row(s) down. Row ids are renumbered so they always run 001, 002, 003 top to bottom.</string>
+               </property>
+               <property name="text">
+                <string>Down</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </item>
            <item>

@@ -123,6 +123,12 @@ effectively the data model each tab has to produce:
   hand-picked representation using the default loader for its product base type. Filtering is
   `ayon_search_text` + `ayon_search_source` (which field to match), plus independent
   `ayon_task` / `ayon_product` filters whose text fields accept several space-separated names.
+  Selecting a **folder** rather than a task stands for everything below it: `selected_tasks()`
+  walks the tree items underneath (so the Task Filter and search narrow the expansion, because
+  the tree is already narrowed) and returns `(folder, task, expanded)` triples. An expanded
+  pair is only built when `templates.any_row_resolves()` says the template has something for
+  that folder — otherwise a whole sequence of unrelated tasks would get empty containers. A
+  task the user picked by hand is always attempted, so its per-row failures are reported.
 * **Inventory tab** — `inventory_tree` columns: Container, Product, Repre, Version, Versions,
   Version Lock, Author, Status, Age Hours, Tags. Three identical, invertible filter rows
   (`inventory_filterN` + `_text` / `_drop` / `_invert`). Fetching is split in two:
@@ -149,9 +155,15 @@ effectively the data model each tab has to produce:
   container's versions (Name, Repre, Version, Status, Author, Age, Tags) for
   `container_setversion`. Deep links out: `container_ayon_activity`, `container_ftrack_notes`.
 * **Template tab** — `template_loader_spreadsheet` columns: ID, Base Type, Repre, Loader,
-  Version Hint, Version Lock, Loader Args, Variant Regex, Product Regex. The regex fields
-  (`template_task_regex`, `template_variant_regex`, `template_product_regex`) are how a
-  templated loader picks which product/representation it resolves to per shot.
+  Version Hint, Version Lock, Loader Args, Task Regex, Variant Regex, Product Regex. The regex
+  fields pick which product/representation a row resolves to per shot: **Task Regex is matched
+  against the name of the task a version was published from** (empty matches any task),
+  Variant Regex against the product name minus its type prefix, Product Regex against the
+  product name. Double-clicking a row loads it back into the controls above the spreadsheet;
+  `template_move_up` / `template_move_down` reorder the selection, after which
+  `Template.renumber()` resets the ids to 001, 002, 003 down the column — **the id is a
+  positional slot, not an identity**, so a Dot labelled `001` always means "whatever the first
+  row loads" and reordering rows changes which product fills which placeholder.
   `template_template_nodes` holds the pasted Nuke node text containing the placeholder dots.
 * **Preferences tab** — `prefs_default_loaders` maps Product Base Type -> Loader; this is the
   default consulted by `ayon_load` and by templated loaders that name no explicit loader.

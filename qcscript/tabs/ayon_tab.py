@@ -3,7 +3,7 @@
 import logging
 
 from ..compat import QtCore, QtWidgets
-from .. import ayonio, containers
+from .. import ayonio, containers, templates
 from .base import (
     TabController,
     busy,
@@ -222,15 +222,55 @@ class AyonTab(TabController):
         return text in str(value or "").lower()
 
     def selected_tasks(self):
-        """(folder_entity, task_entity) pairs currently selected in the tree."""
-        result = []
+        """The folder+task pairs Add Container should build.
+
+        A selected task is taken as it is. A selected folder stands for
+        everything below it, so picking a sequence adds every shot and task
+        under it - but only the ones the template has something to say about,
+        which is decided later, once AYON has been asked.
+
+        Returns a list of (folder_entity, task_entity, expanded) triples, where
+        ``expanded`` marks the pairs that came from a folder rather than from a
+        deliberate task selection.
+        """
+        direct = []
+        expanded = []
         if self.tree is None:
-            return result
+            return []
+
         for item in self.tree.selectedItems():
             entity = get_entity(item)
-            if entity and entity.get("type") == "task":
-                result.append((entity["folder"], entity["task"]))
+            if not entity:
+                continue
+            if entity.get("type") == "task":
+                direct.append((entity["folder"], entity["task"]))
+            else:
+                expanded.extend(self._tasks_below(item))
+
+        # Only the tasks the tree is actually showing are collected, so the
+        # Task Filter and the search box narrow the expansion as well.
+        seen = set()
+        result = []
+        for pairs, is_expanded in ((direct, False), (expanded, True)):
+            for folder, task in pairs:
+                key = (folder.get("id"), task.get("name"))
+                if key in seen:
+                    continue
+                seen.add(key)
+                result.append((folder, task, is_expanded))
         return result
+
+    def _tasks_below(self, item):
+        """Every task item underneath a folder item, at any depth."""
+        found = []
+        for index in range(item.childCount()):
+            child = item.child(index)
+            entity = get_entity(child)
+            if entity and entity.get("type") == "task":
+                found.append((entity["folder"], entity["task"]))
+            else:
+                found.extend(self._tasks_below(child))
+        return found
 
     # -- products ----------------------------------------------------------
 
@@ -356,7 +396,10 @@ class AyonTab(TabController):
         """Add one container per selected folder + task."""
         pairs = self.selected_tasks()
         if not pairs:
-            self.report(["Select one or more tasks in the AYON tree first."])
+            self.report([
+                "Select one or more tasks in the AYON tree, or a folder to "
+                "add everything below it."
+            ])
             return
 
         template = self.panel.template()
@@ -369,14 +412,27 @@ class AyonTab(TabController):
 
         project = self.project_name()
         task_names = self.task_names_by_id()
+        cache = {}  # shared across every folder of this one press
         messages = []
         created = 0
+        no_match = 0
+
         with busy():
-            for folder, task in pairs:
+            for folder, task, expanded in pairs:
+                # A folder was a broad gesture, so shots the template says
+                # nothing about are quietly passed over; a task the supervisor
+                # picked by hand is always attempted, and reports why if it
+                # comes back empty.
+                if expanded and template.loaders and not templates.any_row_resolves(
+                    project, folder["id"], template, task_names, cache
+                ):
+                    no_match += 1
+                    continue
+
                 # One bad shot must not abandon the rest of the batch.
                 try:
                     result = containers.create_container(
-                        project, folder, task, template, task_names
+                        project, folder, task, template, task_names, cache
                     )
                 except Exception as exc:
                     log.exception("Could not build a container")
@@ -396,9 +452,10 @@ class AyonTab(TabController):
         if created:
             self.panel.refresh_inventory()
 
-        messages.insert(
-            0, "Created {} of {} container(s).".format(created, len(pairs))
-        )
+        summary = "Created {} of {} container(s).".format(created, len(pairs))
+        if no_match:
+            summary += " {} skipped, no template row matched.".format(no_match)
+        messages.insert(0, summary)
         self.report(messages)
 
     def load_representation(self):
