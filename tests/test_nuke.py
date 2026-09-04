@@ -114,6 +114,9 @@ if container is not None:
     container.set_color("Yellow")
     check("backdrop colour set",
           container.backdrop["tile_color"].value() == 0xFFFF00FF)
+    check("backdrop is drawn as a border, not filled",
+          container.backdrop["appearance"].value() == "Border",
+          container.backdrop["appearance"].value())
 
 again = containers.create_container("PRJ", folder, task, template)
 check("adding the same folder+task twice is a no-op",

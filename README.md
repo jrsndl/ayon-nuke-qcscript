@@ -24,8 +24,9 @@ tab has no project to read and only the Nuke side of the tool works.
 
 ## Concepts
 
-**Container** - one shot's worth of nodes wrapped in a Nuke `BackdropNode`. Its
-unique key is `{folder path}:{task name}`, the label shown to the user is
+**Container** - one shot's worth of nodes wrapped in a Nuke `BackdropNode`, drawn
+as a border rather than a fill so it does not tint the nodes inside. Its unique
+key is `{folder path}:{task name}`, the label shown to the user is
 `{leaf folder name}:{task name}`. The backdrop carries a hidden `qcs_data` JSON
 knob with project, folder, task and assignees; every node the template produced
 is stamped with `qcs_key` so the container survives saving and reopening.

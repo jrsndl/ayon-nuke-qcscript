@@ -20,6 +20,16 @@ COL_AUTHOR = 4
 COL_AGE = 5
 COL_TAGS = 6
 
+# widget name suffix -> colour name understood by nukeio.COLORS
+COLOR_BUTTONS = (
+    ("red", "Red"),
+    ("green", "Green"),
+    ("blue", "Blue"),
+    ("cyan", "Cyan"),
+    ("magenta", "Magenta"),
+    ("yellow", "Yellow"),
+)
+
 
 class ContainerTab(TabController):
 
@@ -48,6 +58,13 @@ class ContainerTab(TabController):
         )
         self.widget("container_hide_locked").toggled.connect(self.populate)
         self.widget("container_show_last").valueChanged.connect(self.populate)
+
+        for key, color in COLOR_BUTTONS:
+            button = self.widget("container_color_{}".format(key))
+            if button is not None:
+                button.clicked.connect(
+                    lambda checked=False, name=color: self.set_color(name)
+                )
 
         if self.tree is not None:
             self.tree.clear()
@@ -216,6 +233,13 @@ class ContainerTab(TabController):
         self._fetch_rows()
         self.populate()
         self.panel.refresh_inventory()
+
+    def set_color(self, color_name):
+        """Tint the fetched container's backdrop, for marking shots by eye."""
+        if self.container is None:
+            self.report(["Fetch a container first."])
+            return
+        self.container.set_color(color_name)
 
     # -- range and format ---------------------------------------------------
 

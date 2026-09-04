@@ -225,8 +225,25 @@ def create_backdrop(nodes, label, tile_color=None, font_size=42):
         kwargs["tile_color"] = tile_color
 
     backdrop = nuke.nodes.BackdropNode(**kwargs)
+    set_backdrop_appearance(backdrop)
     backdrop.setSelected(False)
     return backdrop
+
+
+def set_backdrop_appearance(backdrop, appearance="Border"):
+    """Draw the backdrop as an outline rather than a filled block.
+
+    Filled backdrops tint everything inside them, which fights with the node
+    colours a supervisor is reading in a QC script.
+    """
+    knob = backdrop.knob("appearance")
+    if knob is None:  # older Nuke versions only draw filled backdrops
+        return
+    try:
+        knob.setValue(appearance)
+    except Exception:
+        log.warning("Could not set backdrop appearance to %s", appearance,
+                    exc_info=True)
 
 
 def resize_backdrop(backdrop, nodes):

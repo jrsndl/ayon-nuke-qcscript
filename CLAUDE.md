@@ -87,7 +87,9 @@ Every supervisor wants the qc script to look bit different, so there needs to be
 * **Container** — one shot's worth of nodes in the QC script, wrapped in a Nuke BackDrop that
   carries metadata knobs. Its unique key is `{folder path}:{task name}`; the user-facing name
   is `{leaf folder name}:{task name}`. A container normally holds several AYON-loaded reads
-  (current version, first version, plate) produced from one template.
+  (current version, first version, plate) produced from one template. Backdrops are created
+  with `appearance` set to **Border**, not Fill — a filled backdrop tints the nodes inside it
+  and fights with the node colours the supervisor is reading.
 * **Template** — the recipe used to build every container: a block of Nuke nodes pasted as a
   starting point, plus a spreadsheet of "templated loaders". Dot nodes named after a templated
   loader's ID act as **placeholders**; once the AYON loader runs, the loaded nodes replace
@@ -140,7 +142,10 @@ effectively the data model each tab has to produce:
   container has no task); *Add Slate* extends the start by one frame. With *Auto* off the
   spin boxes are applied as typed. `set_root_format` reuses an existing Nuke format when the
   numbers match (so a 1920x1080 shot shows as `HD_1080`) instead of adding a `QCS_` format on
-  every press. `container_tree` lists that
+  every press. `container_color_red|green|blue|cyan|magenta|yellow` recolour the fetched
+  container's backdrop directly — the same six colours the Inventory's *Change Color* combo
+  offers, as one-press buttons for marking a shot while looking at it. `container_tree` lists
+  that
   container's versions (Name, Repre, Version, Status, Author, Age, Tags) for
   `container_setversion`. Deep links out: `container_ayon_activity`, `container_ftrack_notes`.
 * **Template tab** — `template_loader_spreadsheet` columns: ID, Base Type, Repre, Loader,
