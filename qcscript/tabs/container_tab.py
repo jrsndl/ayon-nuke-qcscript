@@ -219,20 +219,20 @@ class ContainerTab(TabController):
 
     # -- range and format ---------------------------------------------------
 
-    def _folder_attributes(self):
+    def _attributes(self):
+        """Attributes of the container's task, falling back to its folder."""
         if self.container is None:
             return {}
-        return containers.folder_attributes(
+        return containers.container_attributes(
             self.container.project_name or ayonio.current_project_name(),
             self.container.folder_id,
+            self.container.task_id,
         )
 
     def _auto_fill_range(self):
         if not self.widget("container_set_range_auto").isChecked():
             return
-        attrib = self._folder_attributes()
-        if not attrib:
-            return
+        attrib = self._attributes()
         start = attrib.get("frameStart")
         end = attrib.get("frameEnd")
         if start is None or end is None:
@@ -247,9 +247,7 @@ class ContainerTab(TabController):
     def _auto_fill_format(self):
         if not self.widget("container_set_format_auto").isChecked():
             return
-        attrib = self._folder_attributes()
-        if not attrib:
-            return
+        attrib = self._attributes()
         width = attrib.get("resolutionWidth")
         height = attrib.get("resolutionHeight")
         if not width or not height:
@@ -261,6 +259,10 @@ class ContainerTab(TabController):
         )
 
     def set_range(self):
+        """Set the Nuke script's frame range for this container."""
+        if self.container is None:
+            self.report(["Fetch a container first."])
+            return
         self._auto_fill_range()
         start = self.widget("container_start").value()
         end = self.widget("container_end").value()
@@ -268,9 +270,15 @@ class ContainerTab(TabController):
             self.report(["End frame is before start frame."])
             return
         nukeio.set_root_range(start, end)
-        self.report(["Frame range set to {} - {}.".format(start, end)])
+        self.report(["Frame range set to {} - {} ({}).".format(
+            start, end, self._source_label()
+        )])
 
     def set_format(self):
+        """Set the Nuke script's format for this container."""
+        if self.container is None:
+            self.report(["Fetch a container first."])
+            return
         self._auto_fill_format()
         width = self.widget("container_width").value()
         height = self.widget("container_height").value()
@@ -278,11 +286,23 @@ class ContainerTab(TabController):
         if not width or not height:
             self.report(["Width and height must be set."])
             return
-        name = "QCS_{}x{}".format(width, height)
-        nukeio.set_root_format(width, height, pixel_aspect, name)
-        self.report([
-            "Format set to {} x {} @ {}.".format(width, height, pixel_aspect)
-        ])
+        name = nukeio.set_root_format(
+            width, height, pixel_aspect,
+            "QCS_{}x{}".format(width, height)
+        )
+        self.report(["Format set to {} x {} @ {} ({}).".format(
+            width, height, pixel_aspect, name or self._source_label()
+        )])
+
+    def _source_label(self):
+        """Where the numbers came from, for the confirmation message."""
+        if self.container is None:
+            return "manual"
+        if self.container.task_id:
+            return "{} / {}".format(
+                self.container.folder_path, self.container.task_name
+            )
+        return self.container.folder_path
 
     # -- links --------------------------------------------------------------
 

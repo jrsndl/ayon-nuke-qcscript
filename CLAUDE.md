@@ -128,9 +128,14 @@ effectively the data model each tab has to produce:
   available versions). Mass actions operate on the tree selection:
   `inventory_version_min/max/up/down`, `inventory_change_color`, `inventory_select_nodes`.
 * **Container tab** — `container_get_selected` pulls the container selected in the Nuke node
-  graph. Range (`container_start`/`_end`, `_set_range`, `_set_range_auto`) and format
-  (`container_width`/`_height`/`_pixel_aspect`, `_set_format`, `_set_format_auto`) are set per
-  container, not taken from the AYON folder/task attributes. `container_tree` lists that
+  graph. *Set Range* and *Set Format* apply that container's numbers to the **Nuke script
+  root**, so the supervisor can play the shot. With *Auto* ticked the numbers come from
+  `containers.container_attributes()`, which reads the container's **task** attributes and
+  falls back to its **folder** for anything the task does not define (and entirely, when the
+  container has no task); *Add Slate* extends the start by one frame. With *Auto* off the
+  spin boxes are applied as typed. `set_root_format` reuses an existing Nuke format when the
+  numbers match (so a 1920x1080 shot shows as `HD_1080`) instead of adding a `QCS_` format on
+  every press. `container_tree` lists that
   container's versions (Name, Repre, Version, Status, Author, Age, Tags) for
   `container_setversion`. Deep links out: `container_ayon_activity`, `container_ftrack_notes`.
 * **Template tab** — `template_loader_spreadsheet` columns: ID, Base Type, Repre, Loader,

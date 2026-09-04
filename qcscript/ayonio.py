@@ -203,6 +203,16 @@ def get_product_by_id(project_name, product_id):
         return None
 
 
+def get_task_by_id(project_name, task_id):
+    if ayon_api is None or not task_id:
+        return None
+    try:
+        return ayon_api.get_task_by_id(project_name, task_id)
+    except Exception:
+        log.warning("Could not fetch task %s", task_id, exc_info=True)
+        return None
+
+
 def get_folder_by_id(project_name, folder_id):
     if ayon_api is None or not folder_id:
         return None

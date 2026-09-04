@@ -338,9 +338,36 @@ def set_root_range(first, last):
     root["last_frame"].setValue(int(last))
 
 
-def set_root_format(width, height, pixel_aspect, name="QC Script Helper"):
+def find_format(width, height, pixel_aspect):
+    """An existing Nuke format matching these numbers, or None.
+
+    Reusing a format keeps the script showing the familiar name (HD_1080 and
+    friends) and stops a new QCS_ format being added on every press.
+    """
     if nuke is None:
-        return
+        return None
+    for candidate in nuke.formats():
+        if not candidate.name():
+            continue
+        if (
+            candidate.width() == int(width)
+            and candidate.height() == int(height)
+            and abs(candidate.pixelAspect() - float(pixel_aspect)) < 1e-4
+        ):
+            return candidate
+    return None
+
+
+def set_root_format(width, height, pixel_aspect, name="QC Script Helper"):
+    """Set the script format, returning the format name that was used."""
+    if nuke is None:
+        return ""
+
+    existing = find_format(width, height, pixel_aspect)
+    if existing is not None:
+        nuke.root()["format"].setValue(existing.name())
+        return existing.name()
+
     format_string = "{} {} {} {}".format(
         int(width), int(height), float(pixel_aspect), name
     )
@@ -349,6 +376,8 @@ def set_root_format(width, height, pixel_aspect, name="QC Script Helper"):
         nuke.root()["format"].setValue(name)
     except Exception:
         log.warning("Could not set format %s", format_string, exc_info=True)
+        return ""
+    return name
 
 
 def message(text):

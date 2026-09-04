@@ -202,6 +202,29 @@ if backdrops and result.container is not None:
     check("the placeholder is gone",
           all(n.Class() != "Dot" for n in nuke.allNodes()))
 
+# --- script root range and format ------------------------------------------
+nukeio.set_root_range(1001, 1096)
+check("root frame range set",
+      (nuke.root()["first_frame"].value(), nuke.root()["last_frame"].value())
+      == (1001, 1096),
+      (nuke.root()["first_frame"].value(), nuke.root()["last_frame"].value()))
+
+used = nukeio.set_root_format(1920, 1080, 1.0, "QCS_1920x1080")
+root_format = nuke.root()["format"].value()
+check("root format set to a matching format",
+      root_format.width() == 1920 and root_format.height() == 1080,
+      "{} ({}x{})".format(used, root_format.width(), root_format.height()))
+check("an existing Nuke format is reused rather than duplicated",
+      used == root_format.name() and used != "QCS_1920x1080", used)
+
+before = len(nuke.formats())
+odd = nukeio.set_root_format(1234, 567, 2.0, "QCS_odd")
+check("an unknown format is added once", odd == "QCS_odd", odd)
+nukeio.set_root_format(1234, 567, 2.0, "QCS_odd")
+check("setting the same odd format twice does not add it again",
+      len(nuke.formats()) == before + 1,
+      (before, len(nuke.formats())))
+
 # a stale reference to a deleted node must not break sizing
 ghost = nuke.nodes.Dot()
 survivor = nuke.nodes.Dot()

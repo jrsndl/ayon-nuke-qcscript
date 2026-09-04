@@ -393,12 +393,26 @@ def _primary_node(nodes):
 
 
 # ---------------------------------------------------------------------------
-# folder attributes, used by the Container tab
+# entity attributes, used by the Container tab
 # ---------------------------------------------------------------------------
 
-def folder_attributes(project_name, folder_id):
-    """Frame range and format attributes of a folder, or an empty dict."""
+def container_attributes(project_name, folder_id, task_id=None):
+    """Frame range and format attributes for a container.
+
+    The task is authoritative - it is what the supervisor is checking - and the
+    folder fills in anything the task does not define, which is also the whole
+    answer when the container has no task.
+    """
+    attrib = {}
+
     folder = ayonio.get_folder_by_id(project_name, folder_id)
-    if not folder:
-        return {}
-    return dict(folder.get("attrib") or {})
+    if folder:
+        attrib.update(folder.get("attrib") or {})
+
+    task = ayonio.get_task_by_id(project_name, task_id) if task_id else None
+    if task:
+        for key, value in (task.get("attrib") or {}).items():
+            if value is not None:
+                attrib[key] = value
+
+    return attrib
