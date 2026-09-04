@@ -48,8 +48,9 @@ class QCScriptPanel(QtWidgets.QWidget):
         return self.template_tab.template()
 
     def refresh_inventory(self):
+        """Bring the Inventory back in step after the script was changed."""
         try:
-            self.inventory_tab.fetch_nuke()
+            self.inventory_tab.reload_all()
         except Exception:
             log.warning("Could not refresh the inventory", exc_info=True)
 

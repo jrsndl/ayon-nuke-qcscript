@@ -45,7 +45,7 @@ digit, so put the loader id in the node's **label** (`001`); a name such as
 | Tab | What it does |
 | --- | --- |
 | AYON | Browse folders and tasks, filter them, add one container per selected folder+task, or load a hand picked representation. |
-| Inventory | Read the containers out of the open script, fetch their versions from AYON, filter, and mass change versions. Changed containers are tinted with the colour chosen next to *Change Color*. |
+| Inventory | Read the containers out of the open script, fetch their versions from AYON, filter, and mass change versions. Changed containers are tinted with the colour chosen next to *Change Color*. Adding containers repopulates this tab automatically - both fetches and unfold - so it never lags behind. |
 | Container | Properties of the single container selected in the node graph: frame range, format, version history, links to AYON and Ftrack. *Set Range* and *Set Format* apply to the Nuke script root; with *Auto* on, the numbers come from the container's task attributes, falling back to its folder. |
 | Template | Edit the container recipe. Autosaves. |
 | Preferences | Default loader per product base type, used by *Load* and by templated loaders that name no loader. |

@@ -73,7 +73,19 @@ class InventoryTab(TabController):
             )
 
     def refresh(self):
+        self.reload_all()
+
+    def reload_all(self):
+        """Everything both Fetch buttons and Unfold do, in one go.
+
+        Used after the tool changed the script itself - adding containers or
+        switching a version - so the Inventory is never stale behind the work
+        that was just done.
+        """
         self.fetch_nuke()
+        if ayonio.is_available():
+            self.fetch_ayon()
+        self.unfold()
 
     # -- reading the script -------------------------------------------------
 
@@ -332,10 +344,15 @@ class InventoryTab(TabController):
     def toggle_fold(self):
         if self.tree is None:
             return
-        self._folded = not self._folded
         if self._folded:
-            self.tree.collapseAll()
+            self.unfold()
         else:
+            self._folded = True
+            self.tree.collapseAll()
+
+    def unfold(self):
+        self._folded = False
+        if self.tree is not None:
             self.tree.expandAll()
 
     def select_container_nodes(self):
@@ -408,9 +425,14 @@ class InventoryTab(TabController):
         )
         if locked:
             messages.append("{} item(s) skipped, version locked.".format(locked))
-        self.report(messages)
+
+        # Re-read before reporting so the tree behind the modal is already
+        # showing the versions that are now in the script. The fold state is
+        # left alone here - the supervisor may have collapsed it on purpose.
         self.fetch_nuke()
-        self.fetch_ayon()
+        if ayonio.is_available():
+            self.fetch_ayon()
+        self.report(messages)
 
     def _target_version(self, row, mode):
         available = row.get("versions") or []

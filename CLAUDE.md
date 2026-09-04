@@ -127,6 +127,11 @@ effectively the data model each tab has to produce:
   `inventory_fetch_nuke` (read containers out of the script) and `inventory_fetch_ayon` (query
   available versions). Mass actions operate on the tree selection:
   `inventory_version_min/max/up/down`, `inventory_change_color`, `inventory_select_nodes`.
+  Whenever the tool changes the script itself — Add Container, or a version switch from the
+  Container tab — `panel.refresh_inventory()` runs `InventoryTab.reload_all()`, which is both
+  fetches plus unfold, so the Inventory is never stale behind work the tool just did. It runs
+  *before* the modal report, so the tree is already current when the message box is dismissed.
+  A mass version change re-fetches but deliberately leaves the fold state alone.
 * **Container tab** — `container_get_selected` pulls the container selected in the Nuke node
   graph. *Set Range* and *Set Format* apply that container's numbers to the **Nuke script
   root**, so the supervisor can play the shot. With *Auto* ticked the numbers come from

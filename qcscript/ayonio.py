@@ -41,8 +41,24 @@ except Exception as exc:  # pragma: no cover - depends on host environment
     _AYON_CORE_ERROR = "ayon_core is not importable: {}".format(exc)
 
 
+try:
+    from ayon_nuke.api.pipeline import parse_container as _parse_nuke_container
+except Exception:  # pragma: no cover - depends on host environment
+    _parse_nuke_container = None
+
+
 def is_available():
     return ayon_api is not None and discover_loader_plugins is not None
+
+
+def parse_nuke_container(node):
+    """Read AYON container data off a Nuke node, or None if it is not one."""
+    if _parse_nuke_container is None:
+        return None
+    try:
+        return _parse_nuke_container(node)
+    except Exception:
+        return None
 
 
 def availability_error():

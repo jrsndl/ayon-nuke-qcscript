@@ -391,11 +391,15 @@ class AyonTab(TabController):
                 if result.created:
                     created += 1
 
+        # Refresh before reporting: the report is modal, and the Inventory
+        # should already show the new containers once it is dismissed.
+        if created:
+            self.panel.refresh_inventory()
+
         messages.insert(
             0, "Created {} of {} container(s).".format(created, len(pairs))
         )
         self.report(messages)
-        self.panel.refresh_inventory()
 
     def load_representation(self):
         """Load the hand picked representation with the default loader."""

@@ -106,14 +106,9 @@ class QCContainer(object):
 
     def ayon_containers(self):
         """AYON containers (loaded nodes) that belong to this QC container."""
-        from ayon_nuke.api.pipeline import parse_container
-
         result = []
         for node in self.member_nodes():
-            try:
-                container = parse_container(node)
-            except Exception:
-                container = None
+            container = ayonio.parse_nuke_container(node)
             if container:
                 container["qcs_key"] = self.key
                 container["qcs_loader_id"] = nukeio.get_string_knob(
