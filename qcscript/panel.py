@@ -77,6 +77,11 @@ class QCScriptPanel(QtWidgets.QWidget):
 # ---------------------------------------------------------------------------
 
 def _register_panel(create=False):
+    """Register the widget with Nuke.
+
+    ``registerWidgetAsPanel`` only returns a panel object when ``create`` is
+    True; with create=False it registers the Pane menu entry and returns None.
+    """
     from nukescripts import panels
 
     return panels.registerWidgetAsPanel(
@@ -87,11 +92,15 @@ def _register_panel(create=False):
 def show_panel():
     """Open the panel, docked next to the properties pane when possible."""
     import nuke
+    from nukescripts import panels
 
-    panel = _register_panel()
-    pane = nuke.getPaneFor("Properties.1")
-    panel.addToPane(pane)
-    return panel
+    panel = _register_panel(create=True)
+    if panel is None:  # should not happen, but never crash the menu command
+        return panels.restorePanel(PANEL_ID)
+
+    # addToPane falls back to the current pane, then to a floating window,
+    # so a missing Properties pane is not a problem.
+    return panel.addToPane(nuke.getPaneFor("Properties.1"))
 
 
 def install():
